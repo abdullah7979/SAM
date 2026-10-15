@@ -1,0 +1,29 @@
+name: masroof_smart
+description: المصروف الذكي - Saudi personal finance app
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.3.2
+  intl: ^0.20.3
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  excel: ^4.0.6
+  share_plus: ^13.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/NotoSansArabic-Regular.ttf
