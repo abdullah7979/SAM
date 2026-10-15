@@ -1,0 +1,71 @@
+name: Build Masroof Smart APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create Android project files
+        run: |
+          flutter create --platforms=android --org sa.masroof --project-name masroof_smart platform_seed
+          cp -r platform_seed/android ./android
+          rm -rf platform_seed
+
+      - name: Add SMS bridge and app icon
+        run: |
+          mkdir -p android/app/src/main/kotlin/sa/masroof/masroof_smart
+          cp android_bridge/MainActivity.kt android/app/src/main/kotlin/sa/masroof/masroof_smart/MainActivity.kt
+          mkdir -p android/app/src/main/res/drawable
+          cp android_bridge/icons/ic_launcher_brand.xml android/app/src/main/res/drawable/ic_launcher_brand.xml
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          idx = s.index(">", s.index("<manifest"))
+          s = s[:idx + 1] + '\n    <uses-permission android:name="android.permission.READ_SMS" />' + s[idx + 1:]
+          s = s.replace('android:label="masroof_smart"', 'android:label="المصروف الذكي"')
+          s = s.replace('android:icon="@mipmap/ic_launcher"', 'android:icon="@drawable/ic_launcher_brand"')
+          s = s.replace('android:roundIcon="@mipmap/ic_launcher_round"', 'android:roundIcon="@drawable/ic_launcher_brand"')
+          p.write_text(s)
+          PY
+
+      - name: Install Flutter packages
+        run: flutter pub get
+
+      - name: Format Dart source
+        run: dart format lib/main.dart
+
+      - name: Analyze Dart source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: masroof-smart-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
