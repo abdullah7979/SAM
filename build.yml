@@ -1,0 +1,39 @@
+name: Build Masroof APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate Android runner and install SMS bridge
+        run: |
+          flutter create --platforms=android --org com.masroof --project-name masroof_app android_scaffold
+          cp -R android_scaffold/android ./android
+          mkdir -p android/app/src/main/kotlin/com/masroof/masroof_app
+          cp android_bridge/MainActivity.kt android/app/src/main/kotlin/com/masroof/masroof_app/MainActivity.kt
+          cp android_bridge/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/drawable android/app/src/main/res/mipmap-anydpi-v26
+          cp android_bridge/icons/drawable/*.xml android/app/src/main/res/drawable/
+          cp android_bridge/icons/mipmap-anydpi-v26/*.xml android/app/src/main/res/mipmap-anydpi-v26/
+      - run: flutter pub get
+      - name: Analyze Dart source
+        run: flutter analyze
+        continue-on-error: true
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smart-masroof-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
